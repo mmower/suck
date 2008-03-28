@@ -1,6 +1,8 @@
-require 'ick'
+require 'net/http'
+require 'uri'
 
-require 'suck/call'
+require 'rubygems'
+require 'ick'
 
 module Suck
   VERSION = '1.0.0'
