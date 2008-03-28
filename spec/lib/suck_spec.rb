@@ -1,6 +1,6 @@
-require File.join( File.dirname( __FILE__ ), '..', '..', 'spec_helper' )
+require File.join( File.dirname( __FILE__ ), '..', 'spec_helper' )
 
-require 'suck/call'
+require 'suck'
 
 module Suck
   
@@ -12,7 +12,7 @@ module Suck
     
     it "should use default user agent" do
       @call.expects( :make_request ).with do |request|
-        request[ 'User-Agent' ].should eql( "Suck/1.0" )
+        request[ 'User-Agent' ].should eql( "Suck/1.0.0" )
         true
       end
       @call.invoke

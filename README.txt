@@ -1,18 +1,24 @@
 suck
-    by FIX (your name)
-    FIX (url)
+    by Matt Mower <self@mattmower.com>
+    http://matt.blogs.it/
 
 == DESCRIPTION:
-  
-FIX (describe your package)
+
+A simple HTTP client for Ruby that is meant to not suck
 
 == FEATURES/PROBLEMS:
   
-* FIX (list of features or problems)
+* All useful features of HTTP are still to be implemented
 
 == SYNOPSIS:
 
-  FIX (code sample of usage)
+require 'suck'
+
+include Suck::HTTP
+
+get url, headers
+
+post url, content, headers
 
 == REQUIREMENTS:
 
@@ -20,13 +26,13 @@ FIX (describe your package)
 
 == INSTALL:
 
-* FIX (sudo gem install, anything else)
+sudo gem install suck
 
 == LICENSE:
 
 (The MIT License)
 
-Copyright (c) 2008 FIX
+Copyright (c) 2008 Matt Mower <self@mattmower.com>
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

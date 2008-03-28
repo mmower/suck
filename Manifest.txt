@@ -4,4 +4,3 @@ README.txt
 Rakefile
 bin/suck
 lib/suck.rb
-test/test_suck.rb
