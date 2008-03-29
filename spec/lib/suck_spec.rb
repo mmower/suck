@@ -137,12 +137,23 @@ module Suck
       @call.http_request.should be_an_instance_of( Net::HTTP::Put )
     end
     
+    it "should make PUT request" do
+      @call.expects( :invoke_threaded ).never
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      @call.invoke
+    end
+    
   end
   
   describe Call, "inline POST" do
     
     before( :each ) do
       @call = Call.new( :post, "http://test.com/resources", false )
+      @form = {
+        :login => 'matt',
+        :name => 'Matt Mower',
+        :email => 'self@mattmower.com'
+      }
     end
     
     it "should initialize" do
@@ -151,6 +162,26 @@ module Suck
     
     it "should use Net::HTTP::Post request" do
       @call.http_request.should be_an_instance_of( Net::HTTP::Post )
+    end
+    
+    it "should make POST request" do
+      @call.expects( :invoke_threaded ).never
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      @call.invoke( @form )
+    end
+    
+    it "should set Content-Type" do
+      Net::HTTP.any_instance.expects( :request ).with do |request|
+        request[ 'Content-Type' ].should eql( "application/x-www-form-urlencoded" )
+        true
+      end.returns( mock )
+      @call.invoke( @form )
+    end
+    
+    it "should contain POST'd data" do
+      # Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      @call.http_request.expects( :body= ).with( @form.map {|k,v| "#{urlencode(k.to_s)}=#{urlencode(v.to_s)}" }.join('&') )
+      @call.invoke( @form )
     end
     
   end
@@ -167,6 +198,12 @@ module Suck
     
     it "should use Net::HTTP::Delete request" do
       @call.http_request.should be_an_instance_of( Net::HTTP::Delete )
+    end
+    
+    it "should make DELETE request" do
+      @call.expects( :invoke_threaded ).never
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      @call.invoke
     end
   end
   
