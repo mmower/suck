@@ -47,13 +47,29 @@ module Suck
       Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
       @call.invoke
     end
+    
+    it "should be ok?" do
+      Net::HTTP.any_instance.expects( :start ).with( anything ).returns(
+        Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
+      )
+      @call.invoke
+      @call.should be_ok
+    end
+    
+    it "should not be ok?" do
+      Net::HTTP.any_instance.expects( :start ).with( anything ).returns(
+        Net::HTTPResponse::CODE_TO_OBJ['500'].new( "HTTP/1.0", 500, "Server failed" )
+      )
+      @call.invoke
+      @call.should_not be_ok
+    end
   end
   
   describe Call, "inline GET with callback" do
     
     before( :each ) do
       @called_back = false
-      @call = Call.get( "http://test.com/resources?filter=new" ) { |response,call|
+      @call = Call.get( "http://test.com/resources?filter=new" ) { |call|
         @called_back = true
       }
       Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
@@ -111,7 +127,7 @@ module Suck
     
     before( :each ) do
       @called_back = false
-      @call = Call.get( "http://test.com/resources?filter=new", :threaded => true ) { |response,call|
+      @call = Call.get( "http://test.com/resources?filter=new", :threaded => true ) { |call|
         @called_back = true
       }
     end
@@ -184,6 +200,30 @@ module Suck
       @call.invoke( @form )
     end
     
+  end
+  
+  describe Call, "threaded POST" do
+    
+    before( :each ) do
+      @call = Call.post( "http://test.com/resources", :threaded => true )
+      @form = {
+        :login => 'matt',
+        :name => 'Matt Mower',
+        :email => 'self@mattmower.com'
+      }
+    end
+    
+    it "should use threading" do
+      @call.expects( :invoke_threaded ).once
+      @call.invoke
+    end
+    
+    it "should return Thread" do
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      o = @call.invoke
+      o.should be_instance_of( Thread )
+      o.join
+    end
   end
   
   describe Call, "inline DELETE" do

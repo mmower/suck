@@ -8,15 +8,21 @@ require 'activesupport'
 module Suck
   VERSION = '1.0.0'
   
-  def build_call( method, uri, threaded = false, &callback )
-    Call.new( method, uri, threaded, &callback )
-  end
-  module_function :build_call
-  
   class Call
     Ick::Let.belongs_to self
+    Ick::Maybe.belongs_to self
     
-    attr_accessor :method, :scheme, :host, :port, :path, :query, :username, :password, :user_agent, :callback
+    attr_accessor :method,
+              :scheme,
+              :host,
+              :port,
+              :path,
+              :query,
+              :username,
+              :password,
+              :user_agent,
+              :callback,
+              :response
     
     @@user_agent = "Suck/#{Suck::VERSION}"
     
@@ -42,7 +48,7 @@ module Suck
     # +uri+ should be the full URI including username & password if appropriate
     # +options+ a hash of options including
     # * :threaded - whether to make the call using a separate thread (default: false)
-    # +callback+ an optional block that will be called with the Call and HTTP Response
+    # +callback+ an optional block that will be called with the Call object
     #
     def initialize( method, uri, options = {}, &callback )
       options.reverse_merge! :threaded => false
@@ -52,7 +58,7 @@ module Suck
       @callback = callback
       @user_agent = nil
       
-      @uri = let( URI.parse( uri ) ) do |parsed_uri|
+      let( URI.parse( uri ) ) do |parsed_uri|
         @scheme = parsed_uri.scheme
         @host = parsed_uri.host
         @port = parsed_uri.port
@@ -61,6 +67,8 @@ module Suck
         @username = parsed_uri.user
         @password = parsed_uri.password
       end
+      
+      @response = nil
     end
     
     def invoke( data = nil )
@@ -78,9 +86,9 @@ module Suck
     end
     
     def invoke_inline( data )
-      response = do_http( data )
-      @callback.call( response, self ) if @callback
-      response
+      @response = do_http( data )
+      @callback.call( self ) if @callback
+      @response
     end
     
     def do_http( data )
@@ -99,6 +107,18 @@ module Suck
     
     def http_request
       @request ||= make_http_request
+    end
+    
+    def ok?
+      @response && @response.kind_of?( Net::HTTPSuccess )
+    end
+    
+    def error?
+      !ok?
+    end
+    
+    def status
+      maybe( @response ) { |response| response.message }
     end
     
   private
