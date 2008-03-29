@@ -7,7 +7,7 @@ module Suck
   describe Call, "User Agent" do
     
     before( :each ) do
-      @call = Call.new( :get, "http://test.com/resources?filter=new", false )
+      @call = Call.get( "http://test.com/resources?filter=new" )
     end
     
     it "should use default user agent" do
@@ -31,7 +31,7 @@ module Suck
   describe Call, "inline GET" do
     
     before( :each ) do
-      @call = Call.new( :get, "http://test.com/resources?filter=new", false )
+      @call = Call.get( "http://test.com/resources?filter=new" )
     end
     
     it "should initialize" do
@@ -53,7 +53,7 @@ module Suck
     
     before( :each ) do
       @called_back = false
-      @call = Call.new( :get, "http://test.com/resources?filter=new", false ) { |response,call|
+      @call = Call.get( "http://test.com/resources?filter=new" ) { |response,call|
         @called_back = true
       }
       Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
@@ -68,7 +68,7 @@ module Suck
   describe Call, "inline GET with authorization" do
     
     before( :each ) do
-      @call = Call.new( :get, "http://matt:abc123@test.com/resources?filter=new", false )
+      @call = Call.get( "http://matt:abc123@test.com/resources?filter=new" )
     end
     
     it "should have username" do
@@ -91,7 +91,7 @@ module Suck
   describe Call, "threaded GET" do
     
     before( :each ) do
-      @call = Call.new( :get, "http://test.com/resources?filter=new", true )
+      @call = Call.get( "http://test.com/resources?filter=new", :threaded => true )
     end
     
     it "should use threading" do
@@ -111,7 +111,7 @@ module Suck
     
     before( :each ) do
       @called_back = false
-      @call = Call.new( :get, "http://test.com/resources?filter=new", true ) { |response,call|
+      @call = Call.get( "http://test.com/resources?filter=new", :threaded => true ) { |response,call|
         @called_back = true
       }
     end
@@ -126,7 +126,7 @@ module Suck
   describe Call, "inline PUT" do
     
     before( :each ) do
-      @call = Call.new( :put, "http://test.com/resource/1", false )
+      @call = Call.put( "http://test.com/resource/1" )
     end
     
     it "should initialize" do
@@ -148,7 +148,7 @@ module Suck
   describe Call, "inline POST" do
     
     before( :each ) do
-      @call = Call.new( :post, "http://test.com/resources", false )
+      @call = Call.post( "http://test.com/resources" )
       @form = {
         :login => 'matt',
         :name => 'Matt Mower',
@@ -189,7 +189,7 @@ module Suck
   describe Call, "inline DELETE" do
     
     before(:each) do
-      @call = Call.new( :delete, "http://test.com/resources/1" )
+      @call = Call.delete( "http://test.com/resources/1" )
     end
     
     it "should initialize" do

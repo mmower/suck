@@ -3,6 +3,7 @@ require 'uri'
 
 require 'rubygems'
 require 'ick'
+require 'activesupport'
 
 module Suck
   VERSION = '1.0.0'
@@ -19,9 +20,35 @@ module Suck
     
     @@user_agent = "Suck/#{Suck::VERSION}"
     
-    def initialize( method, uri, threaded = false, &callback )
+    def self.get( uri, options = {}, &callback )
+      Call.new( :get, uri, options, &callback )
+    end
+    
+    def self.put( uri, options = {}, &callback )
+      Call.new( :put, uri, options, &callback )
+    end
+    
+    def self.post( uri, options = {}, &callback )
+      Call.new( :post, uri, options, &callback )
+    end
+    
+    def self.delete( uri, options = {}, &callback )
+      Call.new( :delete, uri, options, &callback )
+    end
+    
+    # Create a new HTTP Call instance
+    #
+    # +method+ should be one of :get, :put, :post, or :delete
+    # +uri+ should be the full URI including username & password if appropriate
+    # +options+ a hash of options including
+    # * :threaded - whether to make the call using a separate thread (default: false)
+    # +callback+ an optional block that will be called with the Call and HTTP Response
+    #
+    def initialize( method, uri, options = {}, &callback )
+      options.reverse_merge! :threaded => false
+      
       @method = method
-      @threaded = threaded
+      @threaded = options[:threaded]
       @callback = callback
       @user_agent = nil
       
