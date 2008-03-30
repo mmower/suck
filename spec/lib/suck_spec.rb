@@ -1,6 +1,7 @@
 require File.join( File.dirname( __FILE__ ), '..', 'spec_helper' )
 
 require 'suck'
+require 'net/http'
 
 module Suck
   
@@ -32,6 +33,9 @@ module Suck
     
     before( :each ) do
       @call = Call.get( "http://test.com/resources?filter=new" )
+      @ok = Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
+      @ok.stubs( :body ).returns( "" )
+      @fail = Net::HTTPResponse::CODE_TO_OBJ['500'].new( "HTTP/1.0", 500, "Server failed" )
     end
     
     it "should initialize" do
@@ -44,22 +48,18 @@ module Suck
     
     it "should make GET request" do
       @call.expects( :invoke_threaded ).never
-      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( @ok )
       @call.invoke
     end
     
     it "should be ok?" do
-      Net::HTTP.any_instance.expects( :start ).with( anything ).returns(
-        Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
-      )
+      Net::HTTP.any_instance.expects( :start ).with( anything ).returns( @ok )
       @call.invoke
       @call.should be_ok
     end
     
     it "should not be ok?" do
-      Net::HTTP.any_instance.expects( :start ).with( anything ).returns(
-        Net::HTTPResponse::CODE_TO_OBJ['500'].new( "HTTP/1.0", 500, "Server failed" )
-      )
+      Net::HTTP.any_instance.expects( :start ).with( anything ).returns( @fail )
       @call.invoke
       @call.should_not be_ok
     end
@@ -72,7 +72,9 @@ module Suck
       @call = Call.get( "http://test.com/resources?filter=new" ) { |call|
         @called_back = true
       }
-      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      @ok = Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
+      @ok.stubs( :body ).returns( "" )
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( @ok )
     end
     
     it "should invoke the callback" do
@@ -108,6 +110,8 @@ module Suck
     
     before( :each ) do
       @call = Call.get( "http://test.com/resources?filter=new", :threaded => true )
+      @ok = Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
+      @ok.stubs( :body ).returns( "" )
     end
     
     it "should use threading" do
@@ -116,7 +120,7 @@ module Suck
     end
     
     it "should return Thread" do
-      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( @ok )
       o = @call.invoke
       o.should be_instance_of( Thread )
       o.join
@@ -130,10 +134,12 @@ module Suck
       @call = Call.get( "http://test.com/resources?filter=new", :threaded => true ) { |call|
         @called_back = true
       }
+      @ok = Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
+      @ok.stubs( :body ).returns( "" )
     end
     
     it "should invoke the callback" do
-      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( @ok )
       @call.invoke.join
       @called_back.should be_true
     end
@@ -143,6 +149,8 @@ module Suck
     
     before( :each ) do
       @call = Call.put( "http://test.com/resource/1" )
+      @ok = Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
+      @ok.stubs( :body ).returns( "" )
     end
     
     it "should initialize" do
@@ -155,7 +163,7 @@ module Suck
     
     it "should make PUT request" do
       @call.expects( :invoke_threaded ).never
-      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( @ok )
       @call.invoke
     end
     
@@ -170,6 +178,8 @@ module Suck
         :name => 'Matt Mower',
         :email => 'self@mattmower.com'
       }
+      @ok = Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
+      @ok.stubs( :body ).returns( "" )
     end
     
     it "should initialize" do
@@ -182,7 +192,7 @@ module Suck
     
     it "should make POST request" do
       @call.expects( :invoke_threaded ).never
-      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( @ok )
       @call.invoke( @form )
     end
     
@@ -190,13 +200,13 @@ module Suck
       Net::HTTP.any_instance.expects( :request ).with do |request|
         request[ 'Content-Type' ].should eql( "application/x-www-form-urlencoded" )
         true
-      end.returns( mock )
+      end.returns( @ok )
       @call.invoke( @form )
     end
     
     it "should contain POST'd data" do
-      # Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
-      @call.http_request.expects( :body= ).with( @form.map {|k,v| "#{urlencode(k.to_s)}=#{urlencode(v.to_s)}" }.join('&') )
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( @ok )
+      @call.http_request.expects( :body= ).with( form_encode( @form ) )
       @call.invoke( @form )
     end
     
@@ -211,6 +221,8 @@ module Suck
         :name => 'Matt Mower',
         :email => 'self@mattmower.com'
       }
+      @ok = Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
+      @ok.stubs( :body ).returns( "" )
     end
     
     it "should use threading" do
@@ -219,7 +231,7 @@ module Suck
     end
     
     it "should return Thread" do
-      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( @ok )
       o = @call.invoke
       o.should be_instance_of( Thread )
       o.join
@@ -230,6 +242,8 @@ module Suck
     
     before(:each) do
       @call = Call.delete( "http://test.com/resources/1" )
+      @ok = Net::HTTPResponse::CODE_TO_OBJ['200'].new( "HTTP/1.0", 200, "OK" )
+      @ok.stubs( :body ).returns( "" )
     end
     
     it "should initialize" do
@@ -242,8 +256,22 @@ module Suck
     
     it "should make DELETE request" do
       @call.expects( :invoke_threaded ).never
-      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( mock )
+      Net::HTTP.any_instance.expects( :request ).with( @call.http_request, nil ).returns( @ok )
       @call.invoke
+    end
+  end
+  
+  describe Call, "raise on error" do
+    
+    before(:each) do
+      @call = Call.get( "http://test.com/resources/1" )
+    end
+    
+    it "should raise on error if requested" do
+      error_response = stub( :code => 500, :message => "Server failed" )
+      Net::HTTP.any_instance.expects( :request ).returns( error_response )
+      @call.invoke
+      lambda { @call.raise_on_error }.should raise_error( Net::HTTPError )
     end
   end
   

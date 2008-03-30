@@ -18,6 +18,7 @@ module Suck
               :port,
               :path,
               :query,
+              :data,
               :username,
               :password,
               :user_agent,
@@ -25,6 +26,12 @@ module Suck
               :response
     
     @@user_agent = "Suck/#{Suck::VERSION}"
+    @@logger = nil
+    
+    def self.log_to( path )
+      require 'logger'
+      @@logger = Logger.new( path )
+    end
     
     def self.get( uri, options = {}, &callback )
       Call.new( :get, uri, options, &callback )
@@ -51,10 +58,11 @@ module Suck
     # +callback+ an optional block that will be called with the Call object
     #
     def initialize( method, uri, options = {}, &callback )
-      options.reverse_merge! :threaded => false
+      options.reverse_merge! :threaded => false, :logged => false
       
       @method = method
       @threaded = options[:threaded]
+      @logged = options[:logged]
       @callback = callback
       @user_agent = nil
       
@@ -68,6 +76,7 @@ module Suck
         @password = parsed_uri.password
       end
       
+      @data = nil
       @response = nil
     end
     
@@ -86,8 +95,13 @@ module Suck
     end
     
     def invoke_inline( data )
+      log { "Making #{@method} request to #{uri.to_s} with data: #{data ? data.keys.join(",") : "none"}" }
       @response = do_http( data )
-      @callback.call( self ) if @callback
+      log { "Response was #{status_code}: #{status_message}" }
+      if @callback
+        log { "Invoking callback" }
+        @callback.call( self ) 
+      end
       @response
     end
     
@@ -95,7 +109,10 @@ module Suck
       request = http_request
       request['User-Agent'] = @user_agent || @@user_agent
       request.basic_auth( @username, @password ) if @username
-      request.set_form_data( data ) if @method == :post && data
+      if @method == :post && data
+        @data = data
+        request.set_form_data( data )
+      end
       make_request( request )
     end
     
@@ -117,14 +134,28 @@ module Suck
       !ok?
     end
     
-    def status
+    def raise_on_error
+      maybe( @response ) { |response| raise Net::HTTPError.new( status_message, response ) unless ok? }
+    end
+    
+    def status_code
+      maybe( @response ) { |response| response.code }
+    end
+    
+    def status_message
       maybe( @response ) { |response| response.message }
+    end
+    
+    def uri
+      URI::HTTP.build( :scheme => @scheme, :host => @host, :port => @port, :path => @path, :query => @query )
+    end
+    
+    def log
+      maybe( @@logger ) { |logger| logger.info( yield ) }
     end
     
   private
     def make_http_request
-      uri = URI::HTTP.build( :scheme => @scheme, :host => @host, :port => @port, :path => @path, :query => @query )
-      
       case @method
       when :get
         req = Net::HTTP::Get.new( uri.request_uri )
