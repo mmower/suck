@@ -151,7 +151,7 @@ module Suck
     end
     
     def log
-      maybe( @@logger ) { |logger| logger.info( yield ) }
+      maybe( @@logger ) { |logger| logger.info( "#{object_id}: #{yield}" ) }
     end
     
   private
