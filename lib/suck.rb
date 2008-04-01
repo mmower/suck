@@ -95,7 +95,7 @@ module Suck
     end
     
     def invoke_inline( data )
-      log { "Making #{@method} request to #{uri.to_s} with data: #{data ? data.keys.join(",") : "none"}" }
+      log { "Making #{@method} request to #{uri.to_s} with data: #{loggable_data(data)}" }
       @response = do_http( data )
       log { "Response was #{status_code}: #{status_message} (#{ok? ? "#{@response.content_length} bytes" : "failed"})" }
       if @callback
@@ -167,6 +167,22 @@ module Suck
         req = Net::HTTP::Delete.new( uri.request_uri )
       else
         raise "Unknown HTTP method '#{@method}' in Suck::API invocation!"
+      end
+    end
+    
+    def loggable_data( data )
+      if data
+        data.map { |key,value| "#{key.to_s}=#{loggable_value( value.to_s )}" }.join( "," )
+      else
+        "none"
+      end
+    end
+    
+    def loggable_value( str, cutoff = 87 )
+      if str.length > cutoff
+        "#{str.slice(0,cutoff)}..."
+      else
+        str
       end
     end
     
