@@ -97,7 +97,7 @@ module Suck
     def invoke_inline( data )
       log { "Making #{@method} request to #{uri.to_s} with data: #{loggable_data(data)}" }
       @response = do_http( data )
-      log { "Response was #{status_code}: #{status_message} (#{ok? ? "#{@response.content_length} bytes" : "failed"})" }
+      log { "Response was #{status_code}: #{status_message} ( #{ok? ? "#{@response.content_length} bytes: #{loggable_value( @response.body.to_s )}" : "failed"} )" }
       if @callback
         log { "Invoking callback" }
         @callback.call( self ) 
