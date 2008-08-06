@@ -1,24 +1,31 @@
 suck
-    by Matt Mower <self@mattmower.com>
-    http://matt.blogs.it/
+  v1.0.1
+  by Matt Mower <self@mattmower.com>
+  http://matt.blogs.it/
 
 == DESCRIPTION:
 
-A simple HTTP client for Ruby that is meant to not suck
+A simple HTTP client for Ruby that is meant to not suck. It does of course, but it works for me. YMMV.
 
 == FEATURES/PROBLEMS:
   
-* All useful features of HTTP are still to be implemented
+* Implements HTTP calls, probably the wrong abstraction <sigh>
 
 == SYNOPSIS:
 
-require 'suck'
+A real-life example use of Suck:
 
-include Suck::HTTP
+<code>
+call = Suck::Call.post( PLAYBACK_API_URL, :threaded => false )
+call.invoke( :unique_id => params[:media_id], :profile => xml )
 
-get url, headers
-
-post url, content, headers
+if call.ok?
+  LOGGER.debug( "#{Time.now.to_s}: Caching embedding." )
+  CACHE[content_key] = call.response.body
+else
+  LOGGER.warning( "#{Time.now.to_s}: Failed to get embedding: #{call.status_code} #{call.status_message}!" )
+end
+</code>
 
 == REQUIREMENTS:
 
@@ -27,6 +34,10 @@ post url, content, headers
 == INSTALL:
 
 sudo gem install suck
+
+== ACKNOWLEDGEMENTS
+
+Suck uses the reverse_merge and reverse_merge! methods from the ActiveSupport library. To avoid a dependency on that library those methods are duplicated in Suck.
 
 == LICENSE:
 
