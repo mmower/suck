@@ -2,15 +2,33 @@ require 'net/http'
 require 'uri'
 
 require 'rubygems'
-require 'ick'
-require 'activesupport'
+
+class Hash
+  # Allows for reverse merging where its the keys in the calling hash that wins over those in the <tt>other_hash</tt>.
+  # This is particularly useful for initializing an incoming option hash with default values:
+  #
+  #   def setup(options = {})
+  #     options.reverse_merge! :size => 25, :velocity => 10
+  #   end
+  #
+  # The default <tt>:size</tt> and <tt>:velocity</tt> is only set if the +options+ passed in doesn't already have those keys set.
+  
+  # Performs the opposite of merge, with the keys and values from the first hash taking precedence over the second.
+  def reverse_merge(other_hash)
+    other_hash.merge(self)
+  end unless method_defined?( :reverse_merge )
+  
+  # Performs the opposite of merge, with the keys and values from the first hash taking precedence over the second.
+  # Modifies the receiver in place.
+  def reverse_merge!(other_hash)
+    replace(reverse_merge(other_hash))
+  end unless method_defined?( :reverse_merge! )
+end
 
 module Suck
-  VERSION = '1.0.0'
+  VERSION = '1.0.1'
   
   class Call
-    Ick::Let.belongs_to self
-    Ick::Maybe.belongs_to self
     
     attr_accessor :method,
               :scheme,
@@ -27,6 +45,12 @@ module Suck
     
     @@user_agent = "Suck/#{Suck::VERSION}"
     @@logger = nil
+    
+    @@mocker = nil
+    
+    def self.mock_mode( &callback )
+      @@mocker = callback
+    end
     
     def self.log_to( path )
       require 'logger'
@@ -66,15 +90,14 @@ module Suck
       @callback = callback
       @user_agent = nil
       
-      let( URI.parse( uri ) ) do |parsed_uri|
-        @scheme = parsed_uri.scheme
-        @host = parsed_uri.host
-        @port = parsed_uri.port
-        @path = parsed_uri.path
-        @query = parsed_uri.query
-        @username = parsed_uri.user
-        @password = parsed_uri.password
-      end
+      parsed_uri = URI.parse( uri )
+      @scheme = parsed_uri.scheme
+      @host = parsed_uri.host
+      @port = parsed_uri.port
+      @path = parsed_uri.path
+      @query = parsed_uri.query
+      @username = parsed_uri.user
+      @password = parsed_uri.password
       
       @data = nil
       @response = nil
@@ -135,15 +158,15 @@ module Suck
     end
     
     def raise_on_error
-      maybe( @response ) { |response| raise Net::HTTPError.new( status_message, response ) unless ok? }
+      raise Net::HTTPError.new( status_message, response ) unless ok?
     end
     
     def status_code
-      maybe( @response ) { |response| response.code }
+      @response && @response.code.to_i
     end
     
     def status_message
-      maybe( @response ) { |response| response.message }
+      @response && @response.message
     end
     
     def uri
@@ -151,7 +174,7 @@ module Suck
     end
     
     def log
-      maybe( @@logger ) { |logger| logger.info( "#{object_id}: #{yield}" ) }
+      @@logger && @@logger.info( "#{object_id}: #{yield}" )
     end
     
   private
@@ -178,7 +201,7 @@ module Suck
       end
     end
     
-    def loggable_value( str, cutoff = 87 )
+    def loggable_value( str, cutoff = 512 )
       if str.length > cutoff
         "#{str.slice(0,cutoff)}..."
       else

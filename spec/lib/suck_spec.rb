@@ -13,7 +13,7 @@ module Suck
     
     it "should use default user agent" do
       @call.expects( :make_request ).with do |request|
-        request[ 'User-Agent' ].should eql( "Suck/1.0.0" )
+        request[ 'User-Agent' ].should eql( "Suck/#{Suck::VERSION}" )
         true
       end
       @call.invoke
